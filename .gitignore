@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.eggs/
+build/
+dist/
+
+# 模型权重与输出产物
+outputs/
+*.pth
+
+# 大文件预训练词向量（可选，不进 git）
+data/*.bin
+data/glove.*.txt
+
+# 系统文件
+.DS_Store
+
+# readme and pdf
+*.pdf
+*.md

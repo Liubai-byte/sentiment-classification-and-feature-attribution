@@ -14,7 +14,7 @@ class BiLSTMSentiment(nn.Module):
         self.dropout = dropout
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, bidirectional=True)
-        self.hidden2label = nn.Linear(hidden_dim*2, label_size)
+        self.hidden2label = nn.Linear(hidden_dim * 2, label_size)
         self.hidden = self.init_hidden()
 
     def init_hidden(self):
@@ -31,5 +31,5 @@ class BiLSTMSentiment(nn.Module):
         x = self.embeddings(sentence).view(len(sentence), self.batch_size, -1)
         lstm_out, self.hidden = self.lstm(x, self.hidden)
         y = self.hidden2label(lstm_out[-1])
-        log_probs = F.log_softmax(y)
+        log_probs = F.log_softmax(y, dim=1)
         return log_probs

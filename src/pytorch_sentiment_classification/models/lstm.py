@@ -31,5 +31,5 @@ class LSTMSentiment(nn.Module):
         x = self.embeddings(sentence).view(len(sentence), self.batch_size, -1)
         lstm_out, self.hidden = self.lstm(x, self.hidden)
         y = self.hidden2label(lstm_out[-1])
-        log_probs = F.log_softmax(y)
+        log_probs = F.log_softmax(y, dim=1)
         return log_probs

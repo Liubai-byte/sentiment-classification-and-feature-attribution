@@ -1,0 +1,22 @@
+[project]
+name = "pytorch-sentiment-classification"
+version = "0.1.0"
+description = "SST-2 情感分类与 Integrated Gradients 特征归因（AIE1903 Homework 1）"
+readme = "README.md"
+authors = [
+    { name = "han", email = "hanhhh0101@outlook.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "captum>=0.9.0",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.9.1",
+    "torch>=2.14.1",
+    "tqdm>=4.70.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13.0"]
+build-backend = "uv_build"

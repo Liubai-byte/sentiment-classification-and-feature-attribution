@@ -1,0 +1,9 @@
+model: bilstm            # lstm / bilstm / cnn
+embedding_dim: 300       # 词向量维度（用 GloVe 100d 时改成 100）
+hidden_dim: 150          # LSTM 隐层维度
+batch_size: 5
+epochs: 20
+learning_rate: 0.001   # 注意：写 1e-3 会被 PyYAML 解析成字符串，故用小数
+seed: 1
+data_dir: data/SST2
+# embedding_path: data/glove.6B.100d.txt   # 可选：预训练词向量，不填则随机初始化
