@@ -3,9 +3,12 @@
 import os
 
 import numpy as np
+from datetime import datetime
+
 import torch
 import torch.nn as nn
 from torch import optim
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from ..models import get_model
@@ -55,7 +58,7 @@ def evaluate(model, data, loss_function, name):
     avg_loss /= len(data)
     acc = get_accuracy(truth_res, pred_res)
     print(name + ": loss %.2f acc %.1f" % (avg_loss, acc * 100))
-    return acc
+    return avg_loss, acc
 
 
 def predict(model, loader):
@@ -88,8 +91,46 @@ def build_embedding_matrix(word_to_idx, embedding_dim, embedding_path=None):
     return pretrained
 
 
+def write_report(config, timestamp, best_dev_acc, truth, preds, best_path):
+    """把本次训练的指标与超参写入 outputs/reports/report_*.md。"""
+    metrics = compute_metrics(truth, preds)
+    out_dir = os.path.join("outputs", "reports")
+    os.makedirs(out_dir, exist_ok=True)
+    report_path = os.path.join(out_dir, "report_%s_%s.md" % (config["model"], timestamp))
+
+    lines = [
+        "# 训练报告",
+        "",
+        "- 模型: %s" % config["model"],
+        "- 超参: embedding_dim=%s, hidden_dim=%s, batch_size=%s, epochs=%s, learning_rate=%s, seed=%s" % (
+            config["embedding_dim"], config["hidden_dim"], config["batch_size"],
+            config["epochs"], config["learning_rate"], config.get("seed", 1)),
+        "- 最佳 Dev Acc: %.2f%%" % (best_dev_acc * 100),
+        "- Checkpoint: %s" % best_path,
+        "",
+        "## 测试集指标",
+        "",
+        "| 指标 | 值 |",
+        "|------|-----|",
+        "| Accuracy | %.4f |" % metrics["accuracy"],
+        "| Precision | %.4f |" % metrics["precision"],
+        "| Recall | %.4f |" % metrics["recall"],
+        "| F1 | %.4f |" % metrics["f1"],
+        "",
+        "## 分类报告",
+        "",
+        "```",
+        classification_report_str(truth, preds),
+        "```",
+    ]
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    print("Report saved to", report_path)
+
+
 def train(config):
     set_seed(config.get("seed", 1))
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     batch_size = config["batch_size"]
     embedding_dim = config["embedding_dim"]
@@ -121,22 +162,36 @@ def train(config):
 
     out_dir = os.path.abspath(os.path.join(os.path.curdir, "outputs", "checkpoints"))
     os.makedirs(out_dir, exist_ok=True)
-    best_path = os.path.join(out_dir, "best_model.pth")
+    best_path = os.path.join(out_dir, "best_model_%s.pth" % timestamp)
+
+    log_dir = os.path.join("outputs", "runs", config["model"] + "_" + timestamp)
+    writer = SummaryWriter(log_dir)
 
     print("Training...")
     best_dev_acc = 0.0
     for epoch in range(epochs):
-        avg_loss, acc = train_epoch(model, train_loader, loss_function, optimizer, epoch)
-        tqdm.write("Train: loss %.2f acc %.1f" % (avg_loss, acc * 100))
-        dev_acc = evaluate(model, dev_loader, loss_function, "Dev")
+        train_loss, train_acc = train_epoch(model, train_loader, loss_function, optimizer, epoch)
+        tqdm.write("Train: loss %.2f acc %.1f" % (train_loss, train_acc * 100))
+        dev_loss, dev_acc = evaluate(model, dev_loader, loss_function, "Dev")
+
+        writer.add_scalar("Loss/train", train_loss, epoch)
+        writer.add_scalar("Acc/train", train_acc * 100, epoch)
+        writer.add_scalar("Loss/dev", dev_loss, epoch)
+        writer.add_scalar("Acc/dev", dev_acc * 100, epoch)
+
         if dev_acc > best_dev_acc:
             best_dev_acc = dev_acc
             torch.save(model.state_dict(), best_path)
-            evaluate(model, test_loader, loss_function, "Test")
+            test_loss, test_acc = evaluate(model, test_loader, loss_function, "Test")
+            writer.add_scalar("Loss/test", test_loss, epoch)
+            writer.add_scalar("Acc/test", test_acc * 100, epoch)
 
     print("Best dev acc: %.1f" % (best_dev_acc * 100))
     truth, preds = predict(model, test_loader)
     print(classification_report_str(truth, preds))
     print("Metrics:", compute_metrics(truth, preds))
+    write_report(config, timestamp, best_dev_acc, truth, preds, best_path)
     print("Checkpoint saved to", best_path)
+    writer.close()
+    print("TensorBoard logs saved to", log_dir)
     return best_dev_acc
