@@ -13,6 +13,7 @@ dependencies = [
     "numpy>=2.5.4",
     "pyyaml>=6.0.3",
     "scikit-learn>=1.9.1",
+    "tensorboard>=2.21.0",
     "torch>=2.14.1",
     "tqdm>=4.70.1",
 ]
