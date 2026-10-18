@@ -1,7 +1,7 @@
-"""从测试集挑选用于解释的句子，记录真实/预测标签与置信度，供后续 explain 使用。
+"""Select sentences from the test set for explanation, recording true/predicted labels and confidence for later use by explain.
 
-配置全部来自 configs/select.yaml（模型、checkpoint、挑选规则、输出目录名）。
-用法：uv run python select_examples.py
+All configuration comes from configs/select.yaml (model, checkpoint, selection rules, output directory name).
+Usage: uv run python select_examples.py
 """
 
 import argparse
@@ -29,8 +29,8 @@ def read_tsv(path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="挑选测试句用于 IG 解释")
-    parser.add_argument("--config", default="configs/select.yaml", help="select 的 YAML 配置")
+    parser = argparse.ArgumentParser(description="Select test sentences for IG explanation")
+    parser.add_argument("--config", default="configs/select.yaml", help="YAML config for select")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -76,15 +76,15 @@ def main():
 
     n_correct = sum(1 for x in selected if x["correct"])
     n_mistakes = sum(1 for x in selected if not x["correct"])
-    print("已选 %d 条（预测正确 %d / 预测错误 %d）" % (len(selected), n_correct, n_mistakes))
-    print("| # | 句子 | 真实 | 预测 | 置信度 | 对/错 |")
-    print("|---|------|------|------|--------|-------|")
+    print("Selected %d examples (%d correct / %d wrong)" % (len(selected), n_correct, n_mistakes))
+    print("| # | sentence | true | pred | confidence | correct/wrong |")
+    print("|---|----------|------|------|------------|---------------|")
     for i, it in enumerate(selected):
         print("| %d | %s | %s | %s | %.3f | %s |" % (
             i + 1, it["sentence"], LABELS[it["true_label"]], LABELS[it["pred_label"]],
-            it["confidence"], "对" if it["correct"] else "错"))
-    print("\n结构化结果: %s" % json_path)
-    print("句子清单(供 explain sentences_file): %s" % txt_path)
+            it["confidence"], "correct" if it["correct"] else "wrong"))
+    print("\nStructured results: %s" % json_path)
+    print("Sentence list (for explain sentences_file): %s" % txt_path)
 
 
 if __name__ == "__main__":

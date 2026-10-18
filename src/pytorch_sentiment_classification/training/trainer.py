@@ -1,4 +1,4 @@
-"""训练与评估循环（复用自原 train_batch.py 的核心逻辑）。"""
+"""Training and evaluation loop (reused from the core logic of the original train_batch.py)."""
 
 import os
 
@@ -62,7 +62,7 @@ def evaluate(model, data, loss_function, name):
 
 
 def predict(model, loader):
-    """返回 (truth, preds) 两个列表，供最终指标计算。"""
+    """Return two lists (truth, preds) for the final metric computation."""
     model.eval()
     truth, preds = [], []
     for batch in loader:
@@ -76,7 +76,7 @@ def predict(model, loader):
 
 
 def build_embedding_matrix(word_to_idx, embedding_dim, embedding_path=None):
-    """构建 embedding 权重矩阵：默认随机初始化，可选加载预训练向量覆盖。"""
+    """Build the embedding weight matrix: random init by default, optionally overridden by pretrained vectors."""
     vocab_size = len(word_to_idx)
     pretrained = np.random.uniform(-0.25, 0.25, (vocab_size, embedding_dim)).astype("float32")
     pretrained[PAD_IDX] = 0.0
@@ -92,32 +92,32 @@ def build_embedding_matrix(word_to_idx, embedding_dim, embedding_path=None):
 
 
 def write_report(config, timestamp, best_dev_acc, truth, preds, best_path):
-    """把本次训练的指标与超参写入 outputs/reports/report_*.md。"""
+    """Write this run's metrics and hyperparameters to outputs/reports/report_*.md."""
     metrics = compute_metrics(truth, preds)
     out_dir = os.path.join("outputs", "reports")
     os.makedirs(out_dir, exist_ok=True)
     report_path = os.path.join(out_dir, "report_%s_%s.md" % (config["model"], timestamp))
 
     lines = [
-        "# 训练报告",
+        "# Training Report",
         "",
-        "- 模型: %s" % config["model"],
-        "- 超参: embedding_dim=%s, hidden_dim=%s, batch_size=%s, epochs=%s, learning_rate=%s, seed=%s" % (
+        "- Model: %s" % config["model"],
+        "- Hyperparameters: embedding_dim=%s, hidden_dim=%s, batch_size=%s, epochs=%s, learning_rate=%s, seed=%s" % (
             config["embedding_dim"], config["hidden_dim"], config["batch_size"],
             config["epochs"], config["learning_rate"], config.get("seed", 1)),
-        "- 最佳 Dev Acc: %.2f%%" % (best_dev_acc * 100),
+        "- Best Dev Acc: %.2f%%" % (best_dev_acc * 100),
         "- Checkpoint: %s" % best_path,
         "",
-        "## 测试集指标",
+        "## Test-set metrics",
         "",
-        "| 指标 | 值 |",
+        "| Metric | Value |",
         "|------|-----|",
         "| Accuracy | %.4f |" % metrics["accuracy"],
         "| Precision | %.4f |" % metrics["precision"],
         "| Recall | %.4f |" % metrics["recall"],
         "| F1 | %.4f |" % metrics["f1"],
         "",
-        "## 分类报告",
+        "## Classification report",
         "",
         "```",
         classification_report_str(truth, preds),
@@ -136,7 +136,7 @@ def train(config):
     embedding_dim = config["embedding_dim"]
     hidden_dim = config["hidden_dim"]
     epochs = config["epochs"]
-    label_size = 2  # 二分类：0=negative, 1=positive
+    label_size = 2  # binary classification: 0=negative, 1=positive
     use_gpu = torch.cuda.is_available()
 
     train_loader, dev_loader, test_loader, word_to_idx = load_sst(config["data_dir"], batch_size)

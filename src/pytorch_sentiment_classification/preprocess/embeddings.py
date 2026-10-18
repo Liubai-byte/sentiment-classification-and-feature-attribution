@@ -1,13 +1,13 @@
-"""加载预训练词向量（可选）。
+"""Load pretrained word vectors (optional).
 
-作业不要求使用预训练向量；不提供 embedding_path 时模型用随机初始化。
+The assignment does not require pretrained vectors; when no embedding_path is provided, the model uses random initialization.
 """
 
 import numpy as np
 
 
 def load_bin_vec(fname, vocab):
-    """加载 GoogleNews word2vec 二进制格式（word + 300 维 float32）。"""
+    """Load the GoogleNews word2vec binary format (word + 300-dim float32)."""
     word_vecs = {}
     with open(fname, "rb") as f:
         header = f.readline()
@@ -30,7 +30,7 @@ def load_bin_vec(fname, vocab):
 
 
 def load_glove(fname, vocab, dim):
-    """加载 GloVe 文本格式（每行 word + dim 个 float）。"""
+    """Load the GloVe text format (each line is a word + dim floats)."""
     word_vecs = {}
     with open(fname, "r", encoding="utf-8") as f:
         for line in f:

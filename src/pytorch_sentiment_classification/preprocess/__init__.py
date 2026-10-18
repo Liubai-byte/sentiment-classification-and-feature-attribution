@@ -1,1 +1,1 @@
-"""数据预处理：清洗、分词、建词表、格式转换、预训练词向量加载。"""
+"""Data preprocessing: cleaning, tokenization, vocab building, format conversion, pretrained word-vector loading."""

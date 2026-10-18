@@ -1,4 +1,4 @@
-"""词表构建：给每个词分配唯一整数 id。"""
+"""Vocab building: assign a unique integer id to each word."""
 
 from .cleaning import line_to_words
 
@@ -9,10 +9,10 @@ UNK_IDX = 1
 
 
 def build_vocab(tsv_paths):
-    """遍历 TSV 建词表。
+    """Build the vocab by scanning the TSV files.
 
-    前两个位置固定为 <pad>=0、<unk>=1，其余词按首次出现顺序编号。
-    返回 word_to_idx（word -> int）。
+    The first two positions are fixed as <pad>=0 and <unk>=1; the remaining words are numbered in order of first appearance.
+    Returns word_to_idx (word -> int).
     """
     word_to_idx = {PAD_TOKEN: PAD_IDX, UNK_TOKEN: UNK_IDX}
     idx = len(word_to_idx)

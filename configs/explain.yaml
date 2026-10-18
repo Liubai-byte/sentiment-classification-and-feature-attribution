@@ -1,28 +1,28 @@
-# —— 模型重建（需与训练时 configs/default.yaml 一致）——
+# --- Model rebuild (must match configs/default.yaml used during training) ---
 model: cnn
 embedding_dim: 300
 hidden_dim: 150
 data_dir: data/SST2
-checkpoint: "outputs/checkpoints/cnn_best_model_20261018-132653.pth"   # ← 训练结束后，把打印出来的 outputs/checkpoints/best_model_<时间戳>.pth 填到这里
+checkpoint: "outputs/checkpoints/cnn_best_model_20261018-132653.pth"   # <- After training, fill in the printed outputs/checkpoints/best_model_<timestamp>.pth here
 
-# —— 要解释的句子（两种方式二选一，也可同时用）——
-# 方式1：直接在这里列
+# --- Sentences to explain (choose one of the two ways, or use both) ---
+# Way 1: list them directly here
 # sentences:
 #   - "makes an aborbing if arguable case for the man 's greatness"
 #   - "still , it gets the job done a sleepy afternoon rental"
-# 方式2：用文件（例如 select_examples.py 产出的句子清单）
+# Way 2: use a file (e.g. the sentence list produced by select_examples.py)
 sentences_file: outputs/select/cnn_20261018-135431/selected_sentences.txt
 
-# —— IG 参数 ——
+# --- IG parameters ---
 n_steps: 50
-target: null            # 0=negative, 1=positive；null=解释模型自己的预测
+target: null            # 0=negative, 1=positive; null=explain the model's own prediction
 
-# —— 输出目录名（留空则自动用 <model>_<时间戳>，每次实验互不覆盖）——
+# --- Output directory name (leave empty to auto-use <model>_<timestamp>; each run does not overwrite previous runs) ---
 run_name: ""
 
-# —— 消融：替换/删除一个高贡献词，做 before/after 对比 ——
+# --- Ablation: replace/delete a high-contribution word for a before/after comparison ---
 ablation:
   enabled: false
-  sentence: ""          # 在哪个句子上做（留空则用 sentences[0]）
-  word: "arguable"      # 要操作的高贡献词
-  replacement: "the"    # 替换成这个词；设为 null 表示删除
+  sentence: ""          # Which sentence to run on (leave empty to use sentences[0])
+  word: "arguable"      # The high-contribution word to operate on
+  replacement: "the"    # Replace with this word; set to null to delete

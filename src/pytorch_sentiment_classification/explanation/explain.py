@@ -1,10 +1,10 @@
-"""Integrated Gradients 词级归因（Captum）。
+"""Integrated Gradients word-level attribution (Captum).
 
-配置全部来自 configs/explain.yaml（模型、checkpoint、要解释的句子、IG 参数、消融）。
-每次运行输出到 outputs/explain/<run_name>/，互不覆盖：
-- ig_<i>.html：绿/红高亮 + 真实/预测标签 + 置信度；
-- explain_results.md：每个词的带符号分数汇总；
-- ablation.md：高贡献词替换/删除的 before/after 对比。
+All configuration comes from configs/explain.yaml (model, checkpoint, sentences to explain, IG parameters, ablation).
+Each run writes to outputs/explain/<run_name>/ without overwriting previous runs:
+- ig_<i>.html: green/red highlighting + true/predicted labels + confidence;
+- explain_results.md: summary of per-word signed scores;
+- ablation.md: before/after comparison for replacing/deleting a high-contribution word.
 """
 
 import argparse
@@ -23,13 +23,13 @@ LABELS = ("negative", "positive")
 
 
 def _reset_hidden_hook(module, inputs):
-    """forward 前重置 hidden 状态并同步 batch_size（IG 会反复调用 forward）。"""
+    """Reset the hidden state and sync batch_size before forward (IG calls forward repeatedly)."""
     module.batch_size = inputs[0].size(1)
     module.hidden = module.init_hidden()
 
 
 def load_model(config, checkpoint, word_to_idx, batch_size=1):
-    """按配置重建模型并加载 checkpoint 权重。"""
+    """Rebuild the model from config and load checkpoint weights."""
     use_gpu = torch.cuda.is_available()
     model = get_model(
         config["model"],
@@ -47,10 +47,10 @@ def load_model(config, checkpoint, word_to_idx, batch_size=1):
 
 
 def _pad_ids_for_cnn(model, ids):
-    """CNN 的卷积核要求 seq_len >= max(kernel_size)；短句在前方补 PAD 到该长度。
+    """CNN kernels require seq_len >= max(kernel_size); pad short sequences on the left to that length.
 
-    PAD 位置与 IG 基线（全 0 = PAD_IDX）一致，故其归因恒为 0，不影响结果。
-    返回 (补齐后的 ids, 前方补了几个 PAD)。非 CNN 模型原样返回、补 0 个。
+    The PAD positions match the IG baseline (all 0 = PAD_IDX), so their attribution is always 0 and does not affect the result.
+    Returns (padded ids, number of PADs prepended). Non-CNN models are returned unchanged with 0 PADs.
     """
     if not hasattr(model, "convs"):
         return ids, 0
@@ -62,7 +62,7 @@ def _pad_ids_for_cnn(model, ids):
 
 
 def predict_tokens(model, word_to_idx, tokens):
-    """对 token 列表做预测，返回 (预测标签, 置信度)。"""
+    """Predict on a token list, returning (predicted label, confidence)."""
     ids = [word_to_idx.get(w, UNK_IDX) for w in tokens]
     ids, _ = _pad_ids_for_cnn(model, ids)
     input_ids = torch.LongTensor(ids).unsqueeze(1)  # (seq_len, 1)
@@ -77,12 +77,12 @@ def predict_tokens(model, word_to_idx, tokens):
 
 
 def predict_sentence(model, word_to_idx, sentence):
-    """对单句做预测，返回 (预测标签, 置信度)。"""
+    """Predict on a single sentence, returning (predicted label, confidence)."""
     return predict_tokens(model, word_to_idx, line_to_words(sentence))
 
 
 def explain_sentence(model, word_to_idx, sentence, target=None, n_steps=50):
-    """对单句做 IG 归因，返回 (tokens, scores, pred, confidence, target_idx)。"""
+    """Run IG attribution on a single sentence, returning (tokens, scores, pred, confidence, target_idx)."""
     tokens = line_to_words(sentence)
     ids = [word_to_idx.get(w, UNK_IDX) for w in tokens]
     ids, pad_len = _pad_ids_for_cnn(model, ids)
@@ -109,12 +109,12 @@ def explain_sentence(model, word_to_idx, sentence, target=None, n_steps=50):
 
     scores = attributions.sum(dim=2).squeeze(1).detach().cpu().numpy()  # (seq_len,)
     if pad_len:
-        scores = scores[-len(tokens):]  # 去掉前方补的 PAD，只保留原句各词的归因
+        scores = scores[-len(tokens):]  # drop the prepended PADs and keep only the original sentence's words
     return tokens, scores, pred, confidence, target_idx
 
 
 def render_html(sentence, tokens, scores, true_label, pred_label, confidence):
-    """正贡献绿色、负贡献红色，深浅表示相对强度；头部显示真实/预测标签与置信度。"""
+    """Positive contributions in green, negative in red, with intensity indicating relative strength; the header shows true/predicted labels and confidence."""
     max_abs = max(abs(float(s)) for s in scores) or 1.0
     spans = []
     for tok, s in zip(tokens, scores):
@@ -128,15 +128,15 @@ def render_html(sentence, tokens, scores, true_label, pred_label, confidence):
 
     true_name = LABELS[true_label] if true_label in (0, 1) else "?"
     pred_name = LABELS[pred_label] if pred_label in (0, 1) else "?"
-    header = ("<p><b>真实标签:</b> %s &nbsp;|&nbsp; <b>预测标签:</b> %s &nbsp;|&nbsp; "
-              "<b>置信度:</b> %.3f</p>" % (true_name, pred_name, confidence))
+    header = ("<p><b>True label:</b> %s &nbsp;|&nbsp; <b>Predicted label:</b> %s &nbsp;|&nbsp; "
+              "<b>Confidence:</b> %.3f</p>" % (true_name, pred_name, confidence))
     body = "<p style='font-size:18px;line-height:2'>" + " ".join(spans) + "</p>"
     return ("<!doctype html><html><head><meta charset='utf-8'></head><body>"
             + header + body + "</body></html>")
 
 
 def load_true_labels(test_path):
-    """读 test.tsv，返回 {句子: 真实标签}。"""
+    """Read test.tsv and return {sentence: true label}."""
     labels = {}
     with open(test_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -149,10 +149,10 @@ def load_true_labels(test_path):
 
 
 def run_ablation(model, word_to_idx, sentence, word, replacement):
-    """替换/删除句子中的一个高贡献词，做 before/after 预测对比。"""
+    """Replace/delete one high-contribution word in a sentence and compare before/after predictions."""
     tokens = line_to_words(sentence)
     if word not in tokens:
-        print("警告：词 '%s' 不在句子中，跳过消融" % word)
+        print("Warning: word '%s' is not in the sentence, skipping ablation" % word)
         return None
 
     pred_before, conf_before = predict_tokens(model, word_to_idx, tokens)
@@ -167,7 +167,7 @@ def run_ablation(model, word_to_idx, sentence, word, replacement):
     pred_after, conf_after = predict_tokens(model, word_to_idx, new_tokens)
     return {
         "word": word,
-        "replacement": replacement if replacement else "(删除)",
+        "replacement": replacement if replacement else "(deleted)",
         "before_sentence": " ".join(tokens),
         "before_pred": pred_before,
         "before_conf": conf_before,
@@ -179,19 +179,19 @@ def run_ablation(model, word_to_idx, sentence, word, replacement):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Integrated Gradients 词级归因")
-    parser.add_argument("--config", default="configs/explain.yaml", help="explain 的 YAML 配置")
+    parser = argparse.ArgumentParser(description="Integrated Gradients word-level attribution")
+    parser.add_argument("--config", default="configs/explain.yaml", help="YAML config for explain")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
 
-    # 重建模型
+    # Rebuild the model
     paths = [os.path.join(cfg["data_dir"], n) for n in ("train.tsv", "dev.tsv", "test.tsv")]
     word_to_idx = build_vocab(paths)
     model = load_model(cfg, cfg["checkpoint"], word_to_idx, batch_size=1)
     true_labels = load_true_labels(os.path.join(cfg["data_dir"], "test.tsv"))
 
-    # 句子：sentences 列表 + 可选 sentences_file
+    # Sentences: the sentences list + optional sentences_file
     sentences = [s for s in (cfg.get("sentences") or []) if s]
     if cfg.get("sentences_file"):
         with open(cfg["sentences_file"], "r", encoding="utf-8") as f:
@@ -200,12 +200,12 @@ def main():
     n_steps = cfg.get("n_steps", 50)
     target = cfg.get("target")
 
-    # 输出目录（每次实验互不覆盖）
+    # Output directory (each run does not overwrite previous runs)
     run_name = cfg.get("run_name") or (cfg["model"] + "_" + datetime.now().strftime("%Y%m%d-%H%M%S"))
     run_dir = os.path.join("outputs", "explain", run_name)
     os.makedirs(run_dir, exist_ok=True)
 
-    report_lines = ["# IG 解释结果", "", "> 运行: %s" % run_name, ""]
+    report_lines = ["# IG Explanation Results", "", "> Run: %s" % run_name, ""]
 
     for i, sentence in enumerate(sentences):
         true_label = true_labels.get(sentence, None)
@@ -213,8 +213,8 @@ def main():
             model, word_to_idx, sentence, target=target, n_steps=n_steps)
 
         true_name = LABELS[true_label] if true_label in (0, 1) else "?"
-        print("\n句子: %s" % sentence)
-        print("真实标签: %s / 预测标签: %s（置信度 %.3f）/ 解释目标类别: %s" % (
+        print("\nSentence: %s" % sentence)
+        print("True label: %s / Predicted label: %s (confidence %.3f) / Explanation target: %s" % (
             true_name, LABELS[pred], confidence, LABELS[target_idx]))
         for tok, s in zip(tokens, scores):
             print("  %-16s %+.4f" % (tok, s))
@@ -222,14 +222,14 @@ def main():
         html_path = os.path.join(run_dir, "ig_%d.html" % i)
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(render_html(sentence, tokens, scores, true_label, pred, confidence))
-        print("高亮可视化已保存: %s" % html_path)
+        print("Highlight visualization saved to: %s" % html_path)
 
-        report_lines.append("## 例子 %d" % (i + 1))
+        report_lines.append("## Example %d" % (i + 1))
         report_lines.append("")
-        report_lines.append("- 句子: %s" % sentence)
-        report_lines.append("- 真实标签: %s / 预测标签: %s / 置信度: %.3f" % (
+        report_lines.append("- Sentence: %s" % sentence)
+        report_lines.append("- True label: %s / Predicted label: %s / Confidence: %.3f" % (
             true_name, LABELS[pred], confidence))
-        report_lines.append("- 词级归因（正=支持预测，负=反对预测）:")
+        report_lines.append("- Word-level attribution (positive = supports the prediction, negative = against it):")
         report_lines.append("")
         report_lines.append("```")
         for tok, s in zip(tokens, scores):
@@ -240,9 +240,9 @@ def main():
     report_path = os.path.join(run_dir, "explain_results.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report_lines))
-    print("\n解释结果汇总已保存: %s" % report_path)
+    print("\nExplanation summary saved to: %s" % report_path)
 
-    # 消融（before/after）
+    # Ablation (before/after)
     ablation = cfg.get("ablation") or {}
     if ablation.get("enabled"):
         sentence = ablation.get("sentence") or (sentences[0] if sentences else "")
@@ -252,23 +252,23 @@ def main():
             res = run_ablation(model, word_to_idx, sentence, word, replacement)
             if res:
                 lines = [
-                    "# 消融实验（before/after）",
+                    "# Ablation Experiment (before/after)",
                     "",
-                    "- 被操作词: %s → %s" % (res["word"], res["replacement"]),
+                    "- Operated word: %s -> %s" % (res["word"], res["replacement"]),
                     "",
-                    "| 情形 | 句子 | 预测标签 | 置信度 |",
-                    "|------|------|----------|--------|",
-                    "| 修改前 | %s | %s | %.3f |" % (res["before_sentence"], LABELS[res["before_pred"]], res["before_conf"]),
-                    "| 修改后 | %s | %s | %.3f |" % (res["after_sentence"], LABELS[res["after_pred"]], res["after_conf"]),
+                    "| Case | Sentence | Predicted label | Confidence |",
+                    "|------|----------|----------------|------------|",
+                    "| Before | %s | %s | %.3f |" % (res["before_sentence"], LABELS[res["before_pred"]], res["before_conf"]),
+                    "| After | %s | %s | %.3f |" % (res["after_sentence"], LABELS[res["after_pred"]], res["after_conf"]),
                     "",
-                    "预测是否翻转: %s" % ("是" if res["flipped"] else "否"),
+                    "Prediction flipped: %s" % ("yes" if res["flipped"] else "no"),
                 ]
                 ab_path = os.path.join(run_dir, "ablation.md")
                 with open(ab_path, "w", encoding="utf-8") as f:
                     f.write("\n".join(lines))
-                print("消融结果已保存: %s" % ab_path)
+                print("Ablation results saved to: %s" % ab_path)
 
-    print("本次实验输出目录: %s" % run_dir)
+    print("Output directory for this run: %s" % run_dir)
 
 
 if __name__ == "__main__":

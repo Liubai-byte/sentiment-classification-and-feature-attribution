@@ -1,10 +1,10 @@
-"""YAML 配置加载。"""
+"""YAML config loading."""
 
 import yaml
 
 
 def load_config(path):
-    """读取 YAML 配置文件，返回 dict。"""
+    """Read a YAML config file and return a dict."""
     with open(path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f) or {}
     return config

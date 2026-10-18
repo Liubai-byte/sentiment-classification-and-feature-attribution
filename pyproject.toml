@@ -1,7 +1,7 @@
 [project]
 name = "pytorch-sentiment-classification"
 version = "0.1.0"
-description = "SST-2 情感分类与 Integrated Gradients 特征归因（AIE1903 Homework 1）"
+description = "SST-2 sentiment classification with Integrated Gradients feature attribution (AIE1903 Homework 1)"
 authors = [
     { name = "han", email = "hanhhh0101@outlook.com" }
 ]

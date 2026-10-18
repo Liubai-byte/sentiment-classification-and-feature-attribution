@@ -1,14 +1,14 @@
-# —— 模型重建（需与训练时 configs/default.yaml 一致）——
+# --- Model rebuild (must match configs/default.yaml used during training) ---
 model: cnn
 embedding_dim: 300
 hidden_dim: 150
 data_dir: data/SST2
-checkpoint: "outputs/checkpoints/cnn_best_model_20261018-132653.pth"   # ← 训练结束后，把打印出来的 outputs/checkpoints/best_model_<时间戳>.pth 填到这里
+checkpoint: "outputs/checkpoints/cnn_best_model_20261018-132653.pth"   # <- After training, fill in the printed outputs/checkpoints/best_model_<timestamp>.pth here
 
-# —— 挑选规则 ——
-n_correct: 3       # 选几个预测正确的
-n_mistakes: 3      # 选几个预测错误的
-seed: 1            # 随机种子，保证可复现
+# --- Selection rules ---
+n_correct: 3       # How many correctly predicted examples to select
+n_mistakes: 3      # How many incorrectly predicted examples to select
+seed: 1            # Random seed for reproducibility
 
-# —— 输出目录名（留空则自动 <model>_<时间戳>）——
+# --- Output directory name (leave empty to auto-use <model>_<timestamp>) ---
 run_name: ""

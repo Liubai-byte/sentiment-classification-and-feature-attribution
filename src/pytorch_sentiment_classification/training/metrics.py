@@ -1,4 +1,4 @@
-"""评估指标：accuracy / precision / recall / F1。"""
+"""Evaluation metrics: accuracy / precision / recall / F1."""
 
 from sklearn.metrics import accuracy_score, classification_report, precision_recall_fscore_support
 
@@ -9,7 +9,7 @@ def get_accuracy(truth, pred):
 
 
 def compute_metrics(truth, pred):
-    """返回二分类指标 dict。"""
+    """Return a dict of binary-classification metrics."""
     precision, recall, f1, _ = precision_recall_fscore_support(
         truth, pred, average="binary", zero_division=0
     )

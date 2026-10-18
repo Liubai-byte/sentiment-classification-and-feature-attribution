@@ -1,4 +1,4 @@
-"""统一设置随机种子，保证可复现。"""
+"""Set random seeds uniformly to ensure reproducibility."""
 
 import random
 

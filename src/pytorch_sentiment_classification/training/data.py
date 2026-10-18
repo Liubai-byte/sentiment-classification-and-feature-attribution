@@ -1,4 +1,4 @@
-"""轻量数据加载：读 TSV、建词表、token 化、padding、批处理（纯 PyTorch，不依赖 torchtext）。"""
+"""Lightweight data loading: read TSV, build vocab, tokenize, pad, and batch (pure PyTorch, no torchtext)."""
 
 import os
 
@@ -10,7 +10,7 @@ from ..preprocess.vocab import PAD_IDX, UNK_IDX, build_vocab
 
 
 class SST2Dataset(Dataset):
-    """把单个 TSV 读到内存：每个样本是 (token id 列表, 标签 0/1)。"""
+    """Read a single TSV into memory: each sample is (token id list, label 0/1)."""
 
     def __init__(self, tsv_path, word_to_idx):
         self.examples = []
@@ -31,9 +31,9 @@ class SST2Dataset(Dataset):
 
 
 def collate_fn(batch):
-    """把一批 (ids, label) 打包成 (padded_text (seq_len, batch), labels (batch,))。
+    """Pack a batch of (ids, label) into (padded_text (seq_len, batch), labels (batch,)).
 
-    按长度降序排列，与模型取 ``lstm_out[-1]`` 的约定一致（参考仓库 BucketIterator 的做法）。
+    Sort by length in descending order, consistent with the model taking ``lstm_out[-1]`` (matching the reference repo's BucketIterator).
     """
     batch = sorted(batch, key=lambda x: len(x[0]), reverse=True)
     sentences = [x[0] for x in batch]
@@ -46,7 +46,7 @@ def collate_fn(batch):
 
 
 def load_sst(data_dir, batch_size):
-    """返回 (train_loader, dev_loader, test_loader, word_to_idx)。"""
+    """Return (train_loader, dev_loader, test_loader, word_to_idx)."""
     train_path = os.path.join(data_dir, "train.tsv")
     dev_path = os.path.join(data_dir, "dev.tsv")
     test_path = os.path.join(data_dir, "test.tsv")
@@ -58,7 +58,7 @@ def load_sst(data_dir, batch_size):
     test_ds = SST2Dataset(test_path, word_to_idx)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
-    # dev/test 各作为一整个 batch，与参考仓库一致
+    # dev/test each as a single whole batch, consistent with the reference repo
     dev_loader = DataLoader(dev_ds, batch_size=len(dev_ds), shuffle=False, collate_fn=collate_fn)
     test_loader = DataLoader(test_ds, batch_size=len(test_ds), shuffle=False, collate_fn=collate_fn)
     return train_loader, dev_loader, test_loader, word_to_idx

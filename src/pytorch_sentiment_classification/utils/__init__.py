@@ -1,1 +1,1 @@
-"""通用工具：配置加载、随机种子。"""
+"""Common utilities: config loading and random seeding."""
