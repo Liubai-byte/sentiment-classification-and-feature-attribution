@@ -1,4 +1,4 @@
-model: lstm            # lstm / bilstm / cnn
+model: cnn        # lstm / bilstm / cnn
 embedding_dim: 300       # 词向量维度（用 GloVe 100d 时改成 100）
 hidden_dim: 150          # LSTM 隐层维度
 batch_size: 32

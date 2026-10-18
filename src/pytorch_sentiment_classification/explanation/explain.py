@@ -16,7 +16,7 @@ from captum.attr import LayerIntegratedGradients
 
 from ..models import get_model
 from ..preprocess.cleaning import line_to_words
-from ..preprocess.vocab import UNK_IDX, build_vocab
+from ..preprocess.vocab import PAD_IDX, UNK_IDX, build_vocab
 from ..utils.config import load_config
 
 LABELS = ("negative", "positive")
@@ -46,9 +46,25 @@ def load_model(config, checkpoint, word_to_idx, batch_size=1):
     return model
 
 
+def _pad_ids_for_cnn(model, ids):
+    """CNN 的卷积核要求 seq_len >= max(kernel_size)；短句在前方补 PAD 到该长度。
+
+    PAD 位置与 IG 基线（全 0 = PAD_IDX）一致，故其归因恒为 0，不影响结果。
+    返回 (补齐后的 ids, 前方补了几个 PAD)。非 CNN 模型原样返回、补 0 个。
+    """
+    if not hasattr(model, "convs"):
+        return ids, 0
+    max_kernel = max(int(c.kernel_size[0]) for c in model.convs)
+    pad_len = max_kernel - len(ids)
+    if pad_len > 0:
+        return [PAD_IDX] * pad_len + ids, pad_len
+    return ids, 0
+
+
 def predict_tokens(model, word_to_idx, tokens):
     """对 token 列表做预测，返回 (预测标签, 置信度)。"""
     ids = [word_to_idx.get(w, UNK_IDX) for w in tokens]
+    ids, _ = _pad_ids_for_cnn(model, ids)
     input_ids = torch.LongTensor(ids).unsqueeze(1)  # (seq_len, 1)
     model.eval()
     model.batch_size = 1
@@ -69,6 +85,7 @@ def explain_sentence(model, word_to_idx, sentence, target=None, n_steps=50):
     """对单句做 IG 归因，返回 (tokens, scores, pred, confidence, target_idx)。"""
     tokens = line_to_words(sentence)
     ids = [word_to_idx.get(w, UNK_IDX) for w in tokens]
+    ids, pad_len = _pad_ids_for_cnn(model, ids)
     input_ids = torch.LongTensor(ids).unsqueeze(1)  # (seq_len, 1)
 
     handle = model.register_forward_pre_hook(_reset_hidden_hook)
@@ -91,6 +108,8 @@ def explain_sentence(model, word_to_idx, sentence, target=None, n_steps=50):
     handle.remove()
 
     scores = attributions.sum(dim=2).squeeze(1).detach().cpu().numpy()  # (seq_len,)
+    if pad_len:
+        scores = scores[-len(tokens):]  # 去掉前方补的 PAD，只保留原句各词的归因
     return tokens, scores, pred, confidence, target_idx
 
 

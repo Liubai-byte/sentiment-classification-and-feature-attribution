@@ -1,0 +1,20 @@
+# Model reconstruction (must match the training configs/default.yaml).
+model: cnn
+embedding_dim: 300
+hidden_dim: 150
+data_dir: data/SST2
+checkpoint: "outputs/checkpoints/cnn_best_model_20261018-132653.pth"   # Path to the trained .pt checkpoint to use.
+
+# Ablation experiment: remove or replace a highly highlighted word and
+# observe whether the prediction changes.
+sentence: "bow 's best moments are when he 's getting busy on the basketball court because that 's when he really scores"
+word: "best"          # The word to act on (must be an exact token of the sentence).
+mode: replace        # "replace" or "delete".
+replacement: "super"        # Used only when mode is "replace"; ignored when mode is "delete".
+
+# Integrated Gradients settings (for the highlight visualization).
+n_steps: 50
+target: null              # null = explain the model's own prediction.
+
+# Output directory name (empty = <model>_<timestamp>, unique per run).
+run_name: ""

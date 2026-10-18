@@ -1,9 +1,9 @@
 # —— 模型重建（需与训练时 configs/default.yaml 一致）——
-model: lstm
+model: cnn
 embedding_dim: 300
 hidden_dim: 150
 data_dir: data/SST2
-checkpoint: "outputs/checkpoints/lstm_best_model_20261017-143142.pth"   # ← 训练结束后，把打印出来的 outputs/checkpoints/best_model_<时间戳>.pth 填到这里
+checkpoint: "outputs/checkpoints/cnn_best_model_20261018-132653.pth"   # ← 训练结束后，把打印出来的 outputs/checkpoints/best_model_<时间戳>.pth 填到这里
 
 # —— 要解释的句子（两种方式二选一，也可同时用）——
 # 方式1：直接在这里列
@@ -11,7 +11,7 @@ checkpoint: "outputs/checkpoints/lstm_best_model_20261017-143142.pth"   # ← �
 #   - "makes an aborbing if arguable case for the man 's greatness"
 #   - "still , it gets the job done a sleepy afternoon rental"
 # 方式2：用文件（例如 select_examples.py 产出的句子清单）
-sentences_file: outputs/select/lstm_20261017-143743/selected_sentences.txt
+sentences_file: outputs/select/cnn_20261018-135431/selected_sentences.txt
 
 # —— IG 参数 ——
 n_steps: 50
