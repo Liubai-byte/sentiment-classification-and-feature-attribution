@@ -9,6 +9,7 @@ dist/
 
 # 模型权重与输出产物
 outputs/
+docs/
 *.pth
 
 # 大文件预训练词向量（可选，不进 git）
@@ -20,4 +21,4 @@ data/glove.*.txt
 
 # readme and pdf
 *.pdf
-*.md
+CLAUDE.md
